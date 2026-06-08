@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>근무시간 계산기</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Malgun Gothic', Arial, sans-serif; background: #f4f6f9; color: #222; font-size: 14px; }
+  .container { max-width: 560px; margin: 40px auto; padding: 0 16px 40px; }
+  h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; color: #1a1a2e; }
+  .subtitle { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .example { font-size: 12px; color: #4a6cf7; background: #eef1ff; border-radius: 7px; padding: 7px 12px; margin-bottom: 20px; }
+  .card { background: #fff; border-radius: 12px; border: 1px solid #e8eaf0; padding: 20px; margin-bottom: 16px; }
+  .card-title { font-size: 12px; color: #888; font-weight: 500; margin-bottom: 14px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .grid2:last-child { margin-bottom: 0; }
+  label { font-size: 12px; color: #555; display: block; margin-bottom: 5px; }
+  select, input[type=time], input[type=number] {
+    width: 100%; padding: 9px 10px; border: 1px solid #dde1ea;
+    border-radius: 8px; font-size: 13px; color: #222;
+    background: #fff; appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23888' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+  }
+  input[type=time], input[type=number] { background-image: none; }
+  select:focus, input:focus { outline: none; border-color: #4a6cf7; }
+  .divider { border: none; border-top: 1px solid #f0f2f7; margin: 4px 0 14px; }
+  .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .result-item { background: #f7f9fc; border-radius: 8px; padding: 12px 14px; }
+  .result-item.accent { background: #eef1ff; }
+  .result-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .result-val { font-size: 22px; font-weight: 600; color: #222; }
+  .result-item.accent .result-val { color: #4a6cf7; }
+  .info-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f2f4f8; font-size: 13px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-key { color: #777; }
+  .info-val { font-weight: 500; }
+  .notice { margin-top: 12px; padding: 10px 12px; background: #fff8e6; border-left: 3px solid #f5a623; border-radius: 6px; font-size: 12px; color: #7a5800; line-height: 1.7; display: none; }
+  .error { margin-top: 12px; padding: 10px 12px; background: #fff0f0; border-left: 3px solid #e74c3c; border-radius: 6px; font-size: 12px; color: #c0392b; display: none; }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #eef1ff; color: #4a6cf7; margin-left: 6px; vertical-align: middle; }
+  .input-hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>근무시간 계산기 <span class="tag">임신기·육아기</span></h1>
+  <p class="subtitle">단축 근무 시 출퇴근시간 및 휴가 적용 계산</p>
+  <p class="example">예시: 임신기 뒤 2H 단축 → 08:30 출근 / 실 근로 종료 15:30 입력 / 휴게 30분 선택 → 퇴근 15:00</p>
+
+  <div class="card">
+    <p class="card-title">① 기본 정보</p>
+    <div class="grid2">
+      <div>
+        <label>구분</label>
+        <select id="type">
+          <option value="임신기">임신기 (주간 고정)</option>
+          <option value="육아기">육아기</option>
+        </select>
+      </div>
+      <div>
+        <label>근무형태</label>
+        <select id="shift">
+          <option value="주간">주간 (08:30~17:30)</option>
+          <option value="야간">야간 (17:00~02:00)</option>
+          <option value="심야">심야 (01:30~10:30)</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>실 근로 시작시간</label>
+        <input type="time" id="startTime" value="08:30">
+        <p class="input-hint" id="hintStart"></p>
+      </div>
+      <div>
+        <label>실 근로 종료시간 <span style="color:#aaa;font-size:11px">(휴게 제외)</span></label>
+        <input type="time" id="endTime" value="15:30">
+        <p class="input-hint" id="hintEnd"></p>
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <label>단축 시간 <span style="color:#aaa;font-size:11px">(H, 예: 2 / 2.5)</span></label>
+        <input type="number" id="shortH" min="0" max="5" step="0.5" value="2">
+      </div>
+      <div>
+        <label>휴게시간</label>
+        <select id="restSel">
+          <option value="0">없음</option>
+          <option value="15">15분</option>
+          <option value="30" selected>30분</option>
+          <option value="45">45분</option>
+          <option value="60">1시간</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-title">② 휴가 선택</p>
+    <div class="grid2">
+      <div>
+        <label>휴가 종류</label>
+        <select id="leave">
+          <option value="없음">없음 (단축만)</option>
+          <option value="앞반차">앞반차 (4H 출근 지연)</option>
+          <option value="뒷반차">뒷반차 (4H 조기 퇴근)</option>
+          <option value="앞반반차">앞반반차 (2H 출근 지연)</option>
+          <option value="뒷반반차">뒷반반차 (2H 조기 퇴근)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="card-title">③ 계산 결과</p>
+    <div class="result-grid">
+      <div class="result-item accent">
+        <div class="result-label">출근시간</div>
+        <div class="result-val" id="resStart">-</div>
+      </div>
+      <div class="result-item accent">
+        <div class="result-label">퇴근시간</div>
+        <div class="result-val" id="resEnd">-</div>
+      </div>
+    </div>
+    <hr class="divider" style="margin-top:14px;">
+    <div class="info-row"><span class="info-key">실 근로시간</span><span class="info-val" id="resWork">-</span></div>
+    <div class="info-row"><span class="info-key">휴게시간</span><span class="info-val" id="resRest">-</span></div>
+    <div class="info-row"><span class="info-key">연차 차감</span><span class="info-val" id="resDayOff">-</span></div>
+    <div class="info-row"><span class="info-key">단축 유형</span><span class="info-val" id="resType">-</span></div>
+    <div class="notice" id="notice"></div>
+    <div class="error" id="errBox"></div>
+  </div>
+  <p style="font-size:11px;color:#aaa;margin-top:4px;padding:0 4px;">* 6H(WD 0.765) &nbsp;5H(WD 0.625) &nbsp;4H(WD 0.5) &nbsp;3H(WD 0.375) &nbsp;2H(WD 0.25)</p>
+</div>
+
+<script>
+const toMin = t => { const [h,m]=t.split(':').map(Number); return h*60+m; };
+const toTime = m => {
+  m = ((m%1440)+1440)%1440;
+  return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+};
+
+const SHIFT_HINTS = {
+  주간: { start:'앞 단축 시 08:30 기준으로 계산해주세요', end:'뒤 단축 시 17:30 기준으로 계산해주세요' },
+  야간: { start:'앞 단축 시 17:00 기준으로 계산해주세요', end:'뒤 단축 시 02:00 기준으로 계산해주세요' },
+  심야: { start:'앞 단축 시 01:30 기준으로 계산해주세요', end:'뒤 단축 시 10:30 기준으로 계산해주세요' }
+};
+
+function updateHints() {
+  const shift = document.getElementById('shift').value;
+  document.getElementById('hintStart').textContent = SHIFT_HINTS[shift].start;
+  document.getElementById('hintEnd').textContent   = SHIFT_HINTS[shift].end;
+}
+
+function getDayOff(type, shortH, leave) {
+  const isHalf     = leave==='앞반차'||leave==='뒷반차';
+  const isHalfHalf = leave==='앞반반차'||leave==='뒷반반차';
+  if(type==='임신기') {
+    if(leave==='없음')   return '8H 차감';
+    if(isHalf)           return '6H 차감 (단축2H + 반차4H)';
+    if(isHalfHalf)       return '4H 차감 (단축2H + 반반차2H)';
+  }
+  const sh = parseFloat(shortH);
+  if(leave==='없음') {
+    const h = 8 - sh;
+    return `${Number.isInteger(h)?h:h.toFixed(1)}H 차감`;
+  }
+  if(isHalf) {
+    if(sh>=4) return 'UNAVAILABLE';
+    if(sh===2) return '4H 차감 (단축2H + 반차4H)';
+    if(sh===3) return '4H 차감 (단축3H + 반차4H)';
+    return '4H 차감';
+  }
+  if(isHalfHalf) return '2H 차감';
+  return '-';
+}
+
+function calc(){
+  const type    = document.getElementById('type').value;
+  const shift   = document.getElementById('shift').value;
+  const stIn    = document.getElementById('startTime').value;
+  const enIn    = document.getElementById('endTime').value;
+  const leave   = document.getElementById('leave').value;
+  const shortH  = parseFloat(document.getElementById('shortH').value)||0;
+  const restMin = parseInt(document.getElementById('restSel').value)||0;
+
+  const errBox = document.getElementById('errBox');
+  const notice = document.getElementById('notice');
+  errBox.style.display='none';
+  notice.style.display='none';
+
+  if(type==='임신기' && shift!=='주간'){
+    errBox.textContent='임신기는 주간 근무만 해당됩니다.';
+    errBox.style.display='block';
+    setResult('-','-','-','-','-','-'); return;
+  }
+
+  if(type==='육아기' && shortH>=4 && (leave==='앞반차'||leave==='뒷반차')){
+    errBox.textContent=`육아기 ${shortH}H 단축 시 반차(4H)는 사용불가입니다. (잔여 근로시간 부족)`;
+    errBox.style.display='block';
+    setResult('-','-','-','-','-','-'); return;
+  }
+
+  let startMin = toMin(stIn);
+  let endMin   = toMin(enIn);
+  if(shift==='야간' && endMin < toMin('12:00')) endMin += 1440;
+  if(shift==='심야' && startMin > toMin('12:00')) startMin -= 1440;
+  if(endMin <= startMin) endMin += 1440;
+
+  const workMins = endMin - startMin;
+  const workH = workMins / 60;
+
+  if(workH > 8 || workH <= 0){
+    errBox.textContent='실 근로시간을 확인해주세요. (1시간 이상 8시간 이하)';
+    errBox.style.display='block';
+    setResult('-','-','-','-','-','-'); return;
+  }
+
+  // 퇴근시간 = 실근로 종료 - 휴게(차감)
+  let finalStart = startMin;
+  let finalEnd   = endMin - restMin;
+
+  // 휴가 적용
+  const leaveMin = (leave==='앞반차'||leave==='뒷반차') ? 240 : (leave==='앞반반차'||leave==='뒷반반차') ? 120 : 0;
+  if(leave==='앞반차'||leave==='앞반반차')      finalStart += leaveMin;
+  else if(leave==='뒷반차'||leave==='뒷반반차') finalEnd   -= leaveMin;
+
+  if(finalEnd <= finalStart){
+    errBox.textContent='잔여 근로시간이 부족하여 해당 휴가는 사용불가입니다.';
+    errBox.style.display='block';
+    setResult('-','-','-','-','-','-'); return;
+  }
+
+  // 단축 유형
+  const CS = { 주간:toMin('08:30'), 야간:toMin('17:00'), 심야:toMin('01:30') };
+  const CE = { 주간:toMin('17:30'), 야간:toMin('02:00')+1440, 심야:toMin('10:30') };
+  const sFront = startMin > CS[shift] + 5;
+  const sBack  = endMin   < CE[shift] - 5;
+  let shortType = '-';
+  if(sFront && sBack) shortType = '앞뒤 혼합 단축';
+  else if(sFront)     shortType = '앞 단축';
+  else if(sBack)      shortType = '뒤 단축';
+
+  const dayOff  = getDayOff(type, shortH, leave);
+  const workLabel = Number.isInteger(workH) ? workH+'시간' : Math.floor(workH)+'시간 '+Math.round((workH%1)*60)+'분';
+  const restLabel = restMin > 0 ? (restMin===60 ? '1시간' : restMin+'분') : '없음';
+
+  setResult(toTime(finalStart), toTime(finalEnd), workLabel, restLabel, dayOff, shortType);
+}
+
+function setResult(s,e,w,r,d,t){
+  document.getElementById('resStart').textContent=s;
+  document.getElementById('resEnd').textContent=e;
+  document.getElementById('resWork').textContent=w;
+  document.getElementById('resRest').textContent=r;
+  document.getElementById('resDayOff').textContent=d;
+  document.getElementById('resType').textContent=t;
+}
+
+['type','leave','restSel'].forEach(id=>document.getElementById(id).addEventListener('change',calc));
+document.getElementById('shift').addEventListener('change', ()=>{ updateHints(); calc(); });
+['startTime','endTime','shortH'].forEach(id=>document.getElementById(id).addEventListener('input',calc));
+updateHints();
+calc();
+</script>
+</body>
+</html>
